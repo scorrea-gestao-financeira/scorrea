@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SCORREA | Acesso Seguro</title>
+  <meta name="description" content="SCORREA - Plataforma financeira conectada ao Supabase" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#11182b;
+      --panel2:#161f36;
+      --text:#f4f7fb;
+      --muted:#aab6cc;
+      --line:#263452;
+      --accent:#4f8cff;
+      --accent2:#78a8ff;
+      --danger:#ff6b6b;
+      --success:#42d392;
+      --shadow:0 24px 70px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(79,140,255,.20), transparent 34%),
+        radial-gradient(circle at 90% 90%, rgba(66,211,146,.10), transparent 30%),
+        var(--bg);
+      color:var(--text);
+    }
+    button,input,select{font:inherit}
+    .hidden{display:none!important}
+    .shell{
+      min-height:100%;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+    .card{
+      width:min(520px,100%);
+      background:rgba(17,24,43,.94);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:28px;
+      backdrop-filter:blur(16px);
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      margin-bottom:24px;
+    }
+    .logo{
+      width:48px;height:48px;border-radius:14px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--accent),#7f5cff);
+      box-shadow:0 10px 30px rgba(79,140,255,.35);
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+    h1{font-size:24px;margin:0}
+    h2{font-size:18px;margin:0 0 8px}
+    p{color:var(--muted);line-height:1.55;margin:8px 0 18px}
+    label{display:block;font-size:13px;color:var(--muted);margin:14px 0 7px}
+    input,select{
+      width:100%;
+      border:1px solid var(--line);
+      background:#0d1425;
+      color:var(--text);
+      border-radius:12px;
+      padding:13px 14px;
+      outline:none;
+    }
+    input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,140,255,.14)}
+    .row{display:flex;gap:10px;align-items:center;margin-top:18px}
+    .row>*{flex:1}
+    .btn{
+      border:0;
+      border-radius:12px;
+      padding:13px 16px;
+      cursor:pointer;
+      font-weight:700;
+      transition:.16s ease;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+    .btn-danger{background:transparent;color:#ffd0d0;border:1px solid rgba(255,107,107,.45)}
+    .msg{
+      margin-top:14px;
+      padding:11px 13px;
+      border-radius:11px;
+      font-size:13px;
+      line-height:1.45;
+      border:1px solid var(--line);
+      background:#0d1425;
+      color:var(--muted);
+    }
+    .msg.error{border-color:rgba(255,107,107,.5);color:#ffd0d0;background:rgba(255,107,107,.08)}
+    .msg.ok{border-color:rgba(66,211,146,.45);color:#caffea;background:rgba(66,211,146,.08)}
+    .hint{font-size:12px;color:#8f9db7}
+    code{background:#0b1120;border:1px solid var(--line);padding:2px 6px;border-radius:6px}
+    #app{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      background:#fff;
+    }
+    .topbar{
+      min-height:56px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:9px 14px;
+      background:#0b1020;
+      border-bottom:1px solid #263452;
+      color:#fff;
+      z-index:10;
+    }
+    .topbar .title{font-weight:800}
+    .topbar .company{
+      color:#cbd7ea;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .spacer{flex:1}
+    .topbar button{
+      padding:8px 11px;
+      border-radius:9px;
+      border:1px solid #314260;
+      background:#161f36;
+      color:#fff;
+      cursor:pointer;
+    }
+    #legacyFrame{
+      border:0;
+      width:100%;
+      flex:1;
+      min-height:0;
+      background:#fff;
+    }
+    .loader{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background:rgba(11,16,32,.92);
+      z-index:9999;
+      color:#fff;
+      font-weight:700;
+    }
+    .small{font-size:12px}
+  </style>
+</head>
+<body>
+
+<div id="loader" class="loader">Inicializando SCORREA…</div>
+
+<section id="setupView" class="shell hidden">
+  <div class="card">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <h1>SCORREA</h1>
+        <div class="hint">Configuração inicial da nuvem</div>
+      </div>
+    </div>
+
+    <h2>Conectar ao Supabase</h2>
+    <p>
+      Esta configuração é feita uma única vez neste navegador.
+      Use somente a <strong>Project URL</strong> e a <strong>Publishable Key</strong>.
+    </p>
+
+    <form id="setupForm">
+      <label for="projectUrl">Project URL</label>
+      <input id="projectUrl" type="url" required placeholder="https://seu-projeto.supabase.co" autocomplete="off">
+
+      <label for="publishableKey">Publishable Key</label>
+      <input id="publishableKey" type="text" required placeholder="sb_publishable_..." autocomplete="off">
+
+      <label for="legacyFile">Arquivo do dashboard</label>
+      <input id="legacyFile" type="text" value="scorrea.html" required autocomplete="off">
+      <div class="hint" style="margin-top:7px">
+        No GitHub, renomeie o HTML original para <code>scorrea.html</code>.
+      </div>
+
+      <div class="row">
+        <button class="btn btn-primary" type="submit">Salvar e testar conexão</button>
+      </div>
+    </form>
+    <div id="setupMsg" class="msg hidden"></div>
+  </div>
+</section>
+
+<section id="loginView" class="shell hidden">
+  <div class="card">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <h1>SCORREA</h1>
+        <div class="hint">Acesso seguro</div>
+      </div>
+    </div>
+
+    <h2>Entrar</h2>
+    <p>Use o e-mail e a senha do usuário criado no Supabase.</p>
+
+    <form id="loginForm">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" required autocomplete="username">
+
+      <label for="password">Senha</label>
+      <input id="password" type="password" required autocomplete="current-password">
+
+      <div class="row">
+        <button class="btn btn-primary" type="submit">Entrar</button>
+        <button class="btn btn-secondary" id="changeConfigBtn" type="button">Configuração</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-secondary" id="forgotPasswordBtn" type="button">Esqueci minha senha</button>
+      </div>
+    </form>
+    <div id="loginMsg" class="msg hidden"></div>
+  </div>
+</section>
+
+<section id="recoveryView" class="shell hidden">
+  <div class="card">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <h1>SCORREA</h1>
+        <div class="hint">Recuperação de acesso</div>
+      </div>
+    </div>
+
+    <h2>Definir nova senha</h2>
+    <p>Escolha uma nova senha para o seu usuário.</p>
+
+    <form id="recoveryForm">
+      <label for="newPassword">Nova senha</label>
+      <input id="newPassword" type="password" required minlength="6" autocomplete="new-password">
+
+      <label for="confirmPassword">Confirmar nova senha</label>
+      <input id="confirmPassword" type="password" required minlength="6" autocomplete="new-password">
+
+      <div class="row">
+        <button class="btn btn-primary" type="submit">Salvar nova senha</button>
+      </div>
+    </form>
+    <div id="recoveryMsg" class="msg hidden"></div>
+  </div>
+</section>
+
+<section id="companyView" class="shell hidden">
+  <div class="card">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <h1>SCORREA</h1>
+        <div class="hint">Empresa</div>
+      </div>
+    </div>
+    <h2>Selecione a empresa</h2>
+    <p>O Supabase retornará somente as empresas liberadas para o seu usuário pelo RLS.</p>
+    <select id="companySelect"></select>
+    <div class="row">
+      <button class="btn btn-primary" id="openCompanyBtn" type="button">Abrir SCORREA</button>
+      <button class="btn btn-danger" id="logoutFromCompanyBtn" type="button">Sair</button>
+    </div>
+    <div id="companyMsg" class="msg hidden"></div>
+  </div>
+</section>
+
+<section id="app" class="hidden">
+  <div class="topbar">
+    <div class="title">SCORREA</div>
+    <div id="companyLabel" class="company"></div>
+    <div class="spacer"></div>
+    <button id="switchCompanyBtn" type="button">Empresa</button>
+    <button id="logoutBtn" type="button">Sair</button>
+  </div>
+  <iframe id="legacyFrame" title="SCORREA Dashboard"></iframe>
+</section>
+
+<script>
+(() => {
+  const STORAGE = {
+    url: 'scorrea.supabase.url',
+    key: 'scorrea.supabase.publishableKey',
+    file: 'scorrea.legacy.file',
+    companyId: 'scorrea.company.id',
+    companyName: 'scorrea.company.name'
+  };
+
+  let client = null;
+  let companies = [];
+
+  const $ = id => document.getElementById(id);
+
+  function showOnly(id) {
+    ['setupView','loginView','recoveryView','companyView','app'].forEach(x => $(x).classList.add('hidden'));
+    $(id).classList.remove('hidden');
+    $('loader').classList.add('hidden');
+  }
+
+  function setMessage(id, text, type='') {
+    const el = $(id);
+    if (!text) {
+      el.className = 'msg hidden';
+      el.textContent = '';
+      return;
+    }
+    el.className = 'msg' + (type ? ' ' + type : '');
+    el.textContent = text;
+  }
+
+  function getConfig() {
+    return {
+      url: localStorage.getItem(STORAGE.url) || '',
+      key: localStorage.getItem(STORAGE.key) || '',
+      file: localStorage.getItem(STORAGE.file) || 'scorrea.html'
+    };
+  }
+
+  function clearConfig() {
+    Object.values(STORAGE).forEach(k => localStorage.removeItem(k));
+    client = null;
+  }
+
+  function createClientFromConfig() {
+    const cfg = getConfig();
+    if (!cfg.url || !cfg.key) return null;
+    client = window.supabase.createClient(cfg.url, cfg.key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+    return client;
+  }
+
+  async function testSupabaseConnection(tempClient) {
+    const { error } = await tempClient.auth.getSession();
+    if (error) throw error;
+    return true;
+  }
+
+  async function loadCompanies() {
+    setMessage('companyMsg', '');
+    const { data, error } = await client
+      .from('empresas')
+      .select('id,nome')
+      .order('nome', { ascending: true });
+
+    if (error) throw error;
+
+    companies = data || [];
+    const select = $('companySelect');
+    select.innerHTML = '';
+
+    for (const empresa of companies) {
+      const opt = document.createElement('option');
+      opt.value = empresa.id;
+      opt.textContent = empresa.nome;
+      select.appendChild(opt);
+    }
+
+    if (!companies.length) {
+      setMessage(
+        'companyMsg',
+        'Login realizado, mas nenhuma empresa foi liberada para este usuário. Verifique empresa_usuarios no Supabase.',
+        'error'
+      );
+      $('openCompanyBtn').disabled = true;
+      return;
+    }
+
+    $('openCompanyBtn').disabled = false;
+
+    const savedId = localStorage.getItem(STORAGE.companyId);
+    if (savedId && companies.some(x => x.id === savedId)) {
+      select.value = savedId;
+    }
+
+    if (companies.length === 1) {
+      select.value = companies[0].id;
+    }
+  }
+
+  function openDashboard(companyId) {
+    const empresa = companies.find(x => x.id === companyId);
+    if (!empresa) return;
+
+    localStorage.setItem(STORAGE.companyId, empresa.id);
+    localStorage.setItem(STORAGE.companyName, empresa.nome);
+
+    $('companyLabel').textContent = empresa.nome;
+
+    const cfg = getConfig();
+    const frame = $('legacyFrame');
+    frame.src = cfg.file || 'scorrea.html';
+
+    showOnly('app');
+  }
+
+  async function routeAuthenticatedUser() {
+    try {
+      await loadCompanies();
+
+      if (companies.length === 1) {
+        openDashboard(companies[0].id);
+      } else {
+        showOnly('companyView');
+      }
+    } catch (err) {
+      showOnly('companyView');
+      setMessage('companyMsg', 'Não foi possível consultar as empresas: ' + (err.message || err), 'error');
+    }
+  }
+
+  async function bootstrap() {
+    try {
+      if (!window.supabase) {
+        throw new Error('A biblioteca do Supabase não foi carregada. Verifique sua conexão com a internet.');
+      }
+
+      const cfg = getConfig();
+      if (!cfg.url || !cfg.key) {
+        $('legacyFile').value = cfg.file || 'scorrea.html';
+        showOnly('setupView');
+        return;
+      }
+
+      createClientFromConfig();
+
+      const recoveryInUrl =
+        window.location.hash.includes('type=recovery') ||
+        window.location.search.includes('type=recovery');
+
+      client.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          showOnly('recoveryView');
+          return;
+        }
+
+        if (!session) {
+          localStorage.removeItem(STORAGE.companyId);
+          localStorage.removeItem(STORAGE.companyName);
+          if (!recoveryInUrl) showOnly('loginView');
+        }
+      });
+
+      const { data, error } = await client.auth.getSession();
+      if (error) throw error;
+
+      if (recoveryInUrl) {
+        showOnly('recoveryView');
+      } else if (data.session) {
+        await routeAuthenticatedUser();
+      } else {
+        showOnly('loginView');
+      }
+
+    } catch (err) {
+      console.error(err);
+      showOnly('setupView');
+      setMessage('setupMsg', 'Falha ao inicializar: ' + (err.message || err), 'error');
+    }
+  }
+
+  $('setupForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    setMessage('setupMsg', 'Testando conexão…');
+
+    const url = $('projectUrl').value.trim().replace(/\/+$/, '');
+    const key = $('publishableKey').value.trim();
+    const file = $('legacyFile').value.trim() || 'scorrea.html';
+
+    try {
+      if (!/^https:\/\/.+\.supabase\.co$/i.test(url) && !/^https:\/\/.+/i.test(url)) {
+        throw new Error('Project URL inválida.');
+      }
+      if (!key) throw new Error('Informe a Publishable Key.');
+
+      const tempClient = window.supabase.createClient(url, key);
+      await testSupabaseConnection(tempClient);
+
+      localStorage.setItem(STORAGE.url, url);
+      localStorage.setItem(STORAGE.key, key);
+      localStorage.setItem(STORAGE.file, file);
+
+      client = tempClient;
+      setMessage('setupMsg', 'Conexão configurada com sucesso.', 'ok');
+      setTimeout(() => showOnly('loginView'), 450);
+
+    } catch (err) {
+      setMessage('setupMsg', 'Não foi possível conectar: ' + (err.message || err), 'error');
+    }
+  });
+
+  $('loginForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    setMessage('loginMsg', 'Autenticando…');
+
+    const email = $('email').value.trim();
+    const password = $('password').value;
+
+    try {
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+
+      setMessage('loginMsg', 'Login realizado.', 'ok');
+      await routeAuthenticatedUser();
+
+    } catch (err) {
+      setMessage('loginMsg', 'Não foi possível entrar: ' + (err.message || err), 'error');
+    }
+  });
+
+  $('forgotPasswordBtn').addEventListener('click', async () => {
+    setMessage('loginMsg', '');
+
+    const email = $('email').value.trim();
+    if (!email) {
+      setMessage('loginMsg', 'Digite seu e-mail acima e clique novamente em "Esqueci minha senha".', 'error');
+      $('email').focus();
+      return;
+    }
+
+    try {
+      const redirectTo = window.location.origin + window.location.pathname;
+
+      const { error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo
+      });
+
+      if (error) throw error;
+
+      setMessage(
+        'loginMsg',
+        'Se o e-mail estiver cadastrado, você receberá um link para criar uma nova senha. Use o link mais recente.',
+        'ok'
+      );
+    } catch (err) {
+      setMessage('loginMsg', 'Não foi possível solicitar a recuperação: ' + (err.message || err), 'error');
+    }
+  });
+
+  $('recoveryForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    setMessage('recoveryMsg', '');
+
+    const password = $('newPassword').value;
+    const confirm = $('confirmPassword').value;
+
+    if (password.length < 6) {
+      setMessage('recoveryMsg', 'Use uma senha com pelo menos 6 caracteres.', 'error');
+      return;
+    }
+
+    if (password !== confirm) {
+      setMessage('recoveryMsg', 'As duas senhas não são iguais.', 'error');
+      return;
+    }
+
+    try {
+      const { error } = await client.auth.updateUser({ password });
+      if (error) throw error;
+
+      setMessage('recoveryMsg', 'Senha alterada com sucesso. Redirecionando para o login…', 'ok');
+
+      history.replaceState({}, document.title, window.location.pathname);
+      await client.auth.signOut();
+
+      $('password').value = '';
+      setTimeout(() => {
+        setMessage('loginMsg', 'Senha alterada. Entre com a nova senha.', 'ok');
+        showOnly('loginView');
+      }, 600);
+
+    } catch (err) {
+      setMessage('recoveryMsg', 'Não foi possível alterar a senha: ' + (err.message || err), 'error');
+    }
+  });
+
+  $('changeConfigBtn').addEventListener('click', async () => {
+    try {
+      if (client) await client.auth.signOut();
+    } catch {}
+    clearConfig();
+    $('projectUrl').value = '';
+    $('publishableKey').value = '';
+    $('legacyFile').value = 'scorrea.html';
+    setMessage('setupMsg', '');
+    showOnly('setupView');
+  });
+
+  $('openCompanyBtn').addEventListener('click', () => {
+    openDashboard($('companySelect').value);
+  });
+
+  $('switchCompanyBtn').addEventListener('click', async () => {
+    await loadCompanies();
+    showOnly('companyView');
+  });
+
+  async function logout() {
+    try {
+      if (client) await client.auth.signOut();
+    } finally {
+      localStorage.removeItem(STORAGE.companyId);
+      localStorage.removeItem(STORAGE.companyName);
+      $('legacyFrame').src = 'about:blank';
+      showOnly('loginView');
+    }
+  }
+
+  $('logoutBtn').addEventListener('click', logout);
+  $('logoutFromCompanyBtn').addEventListener('click', logout);
+
+  bootstrap();
+})();
+</script>
+</body>
+</html>
